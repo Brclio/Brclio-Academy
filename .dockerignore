@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.env
+.env.*
+!.env.example
+.data
+*.sqlite*
+*.db*
+*.tsbuildinfo
+playwright-report
+test-results
+.DS_Store
+.playwright-cli
+output/playwright
+*.enc.json

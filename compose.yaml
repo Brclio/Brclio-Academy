@@ -1,0 +1,15 @@
+services:
+  academy:
+    build: .
+    restart: unless-stopped
+    env_file: .env.local
+    environment:
+      NODE_ENV: production
+      DATA_DRIVER: sqlite
+      SQLITE_PATH: /app/.data/academy.sqlite
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - academy-data:/app/.data
+volumes:
+  academy-data:
