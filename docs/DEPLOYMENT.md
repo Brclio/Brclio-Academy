@@ -1,5 +1,7 @@
 # 部署教程
 
+使用 Vercel 部署到 `academy.brclio.com` 时，可先阅读[本次部署的详细步骤](VERCEL-DEPLOYMENT.md)或[网页版教程](vercel-deployment.html)，包含已准备的私密 env 文件导入方法、Gmail SMTP、域名绑定和管理员初始化。本文保留各部署方式的通用说明。
+
 本项目需要可信的 Node.js 服务端来发送邮件、验证会话、判断 VIP 并读取私有数据。代码可以存放在 GitHub；应用部署到 Vercel 或服务器。不要把应用作为静态导出上传到 GitHub Pages。
 
 ## 1. 选择存储方式

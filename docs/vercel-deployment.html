@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brclio Academy · Vercel 部署手册</title>
+  <link rel="icon" href="data:,">
+  <meta name="description" content="从环境变量导入、Gmail 邮件和 GitHub 私有数据，到正式域名、管理员和 VIP 验收的完整中文部署手册。">
+  <link rel="stylesheet" href="assets/vercel/fonts.css">
+  <style>
+    /* === CSS变量 === */
+    :root { --_brclio-ds: "brclio-v1";
+      --blue: #2B7FD8;
+      --blue-deep: #1E5BA8;
+      --yellow: #F4D758;
+      --yellow-soft: #FFF3CD;
+      --red: #E84A5F;
+      --cream: #fefcf6;
+      --cream-dark: #faf6eb;
+      --ink: #1A1A2E;
+      --ink-light: #4A4A5A;
+      --ink-faint: #8A8A9A;
+      --dark-panel: #151821;
+    }
+
+    /* === Reset === */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Noto Sans SC', -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      color: var(--ink);
+      background: var(--cream);
+    }
+
+    ::selection {
+      background: var(--yellow);
+      color: var(--ink);
+    }
+
+    .container {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    /* === Hero Section === */
+    /* 替换为适合的Hero布局（参见layouts.md） */
+    .hero {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 0.6fr;
+      align-items: center;
+      gap: 48px;
+      padding: 6rem 2rem 4rem;
+      max-width: 1300px;
+      margin: 0 auto;
+    }
+
+    .hero h1 {
+      font-family: 'Noto Serif SC', serif;
+      font-weight: 900;
+      font-size: clamp(2.8rem, 7vw, 5.5rem);
+      line-height: 1.15;
+    }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--ink-light);
+      margin-top: 1.5rem;
+      max-width: 540px;
+    }
+
+    .label-caps {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      font-weight: 500;
+      color: var(--ink-faint);
+      display: block;
+      margin-bottom: 0.75rem;
+    }
+
+    /* === Content Sections === */
+    /* 每个section使用不同布局（参见layouts.md） */
+    .section {
+      padding: clamp(80px, 12vh, 160px) 0;
+    }
+
+    .section--alt {
+      background: var(--cream-dark);
+    }
+
+    .section-header {
+      margin-bottom: clamp(40px, 6vw, 80px);
+    }
+
+    .section-number {
+      font-family: 'Fraunces', serif;
+      font-style: italic;
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      color: var(--blue);
+      opacity: 0.3;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .section-title {
+      font-family: 'Noto Serif SC', serif;
+      font-weight: 900;
+      font-size: clamp(1.4rem, 3vw, 2.2rem);
+    }
+
+    /* === 卡片 === */
+    .feature-card {
+      background: var(--cream-dark);
+      border-radius: 16px;
+      padding: clamp(24px, 3vw, 36px);
+      border-bottom: 4px solid var(--yellow);
+      transition: transform 0.3s ease;
+    }
+    .feature-card:hover { transform: translateY(-4px); }
+
+    /* === Scroll Reveal === */
+    .reveal {
+      opacity: 0;
+      transform: translateY(32px);
+      transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .reveal.visible { opacity: 1; transform: none; }
+    .reveal-d1 { transition-delay: 0.1s; }
+    .reveal-d2 { transition-delay: 0.2s; }
+    .reveal-d3 { transition-delay: 0.3s; }
+    .reveal-d4 { transition-delay: 0.4s; }
+    .reveal-d5 { transition-delay: 0.5s; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { opacity: 1; transform: none; transition: none; }
+    }
+
+    /* === 响应式 === */
+    @media (max-width: 900px) {
+      .hero {
+        grid-template-columns: 1fr;
+        min-height: auto;
+        padding: 4rem 1.5rem 3rem;
+      }
+    }
+
+    @media (max-width: 600px) {
+      body { font-size: 15px; }
+    }
+
+    /* Adapted from Brclio tutorial template; components 2, 5, 11, 19, 28, 35, 43, 50. */
+    html { scroll-behavior: smooth; scroll-padding-top: 112px; }
+    body { background: radial-gradient(ellipse at 90% 8%, rgba(244,215,88,.13), transparent 34%),var(--cream); }
+    h1,h2,h3 { font-family: 'Noto Serif SC', 'Songti SC', serif; text-wrap: balance; }
+    h2 { font-size: clamp(1.65rem,3.2vw,2.5rem); font-weight: 850; line-height: 1.4; }
+    h3 { font-size: clamp(1.08rem,2vw,1.32rem); font-weight: 800; line-height: 1.6; }
+    a { color: var(--blue-deep); text-underline-offset: 4px; text-decoration-thickness: 1px; }
+    a:hover { text-decoration-thickness: 3px; }
+    button,input { font: inherit; }
+    button { cursor: pointer; }
+    :focus-visible { outline: 3px solid var(--blue); outline-offset: 4px; }
+    p + p { margin-top: 1rem; }
+    strong { font-weight: 700; }
+    code { font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace; font-size: .86em; overflow-wrap: anywhere; }
+    p code,li code,dd code { color: var(--blue-deep); background: rgba(43,127,216,.06); border-radius: 4px; padding: .12em .3em; }
+    .container { max-width: 1240px; padding-inline: clamp(22px,4vw,64px); }
+    .topbar { position: sticky; top: 0; z-index: 20; background: var(--cream); border-bottom: 1px solid #e4e0d6; }
+    .topbar-inner { display:flex; justify-content:space-between; align-items:center; gap:20px; max-width:1240px; margin:auto; padding:15px clamp(22px,4vw,64px); }
+    .brand { display:flex; align-items:baseline; gap:12px; text-decoration:none; color:var(--ink); font-family:'Fraunces',serif; font-size:1.35rem; font-weight:700; }
+    .brand span { font:500 .68rem 'Noto Sans SC',sans-serif; letter-spacing:.13em; color:var(--ink-light); }
+    .progress-wrap { display:flex; align-items:center; gap:12px; font-size:.73rem; }
+    .progress-track { width:94px; height:5px; border-radius:3px; background:#e7e2d6; overflow:hidden; }
+    .progress-fill { width:100%; height:100%; transform-origin:left; transform:scaleX(0); background:var(--blue); }
+    .skip { position:absolute; top:-100px; left:16px; padding:10px; background:var(--yellow); z-index:30; }
+    .skip:focus { top:4px; }
+    .hero { min-height:700px; max-width:1240px; padding:clamp(56px,7vw,100px) clamp(22px,4vw,64px) 64px; grid-template-columns:1.2fr .78fr; gap:clamp(36px,5vw,80px); }
+    .hero h1 { font-size:clamp(3rem,5.3vw,4.75rem); line-height:1.23; letter-spacing:-.04em; }
+    .hero .en { color:var(--blue); font-family:'Fraunces',serif; font-size:clamp(1.45rem,3vw,2.25rem); margin:0 0 20px; font-style:italic; }
+    .hero .lead { max-width:520px; font-size:clamp(.98rem,1.5vw,1.08rem); line-height:1.95; }
+    .highlight { background:linear-gradient(transparent 65%,rgba(244,215,88,.65) 65%); }
+    .tagline { display:flex; gap:10px; flex-wrap:wrap; margin-top:28px; }
+    .pill { padding:5px 11px; background:var(--cream-dark); color:var(--ink-light); font-size:.71rem; border-radius:30px; }
+    .pill.blue { background:rgba(43,127,216,.08); color:var(--blue-deep); }
+    .hero-actions { display:flex; flex-wrap:wrap; gap:22px; align-items:center; margin-top:30px; }
+    .cta { display:inline-flex; align-items:center; justify-content:center; gap:22px; padding:13px 23px; background:var(--blue-deep); color:var(--cream); text-decoration:none; border-radius:7px; font-weight:600; font-size:.88rem; border:0; }
+    .cta:hover { text-decoration:underline; }
+    .quiet-link { font-size:.83rem; }
+    .launch-sheet { background:#fffaf0; border:1px solid #dcd6c7; border-radius:3px; box-shadow:8px 8px 0 #eee7d8; padding:28px 28px 124px; position:relative; margin-bottom:18px; }
+    .sheet-title { font-family:'Fraunces',serif; font-size:2rem; color:var(--blue-deep); letter-spacing:-.02em; }
+    .sheet-kicker { font-size:.64rem; letter-spacing:.15em; text-transform:uppercase; color:var(--ink-light); margin-bottom:16px; }
+    .sheet-line { padding:17px 0; border-bottom:1px solid #e3dccd; }
+    .sheet-line .mini { display:block; font-size:.67rem; color:var(--ink-light); margin-bottom:2px; }
+    .sheet-line b { font-size:.93rem; overflow-wrap:anywhere; }
+    .launch-sheet .character { position:absolute; width:152px; height:208px; object-fit:contain; bottom:-35px; right:-26px; }
+    .sheet-note { position:absolute; bottom:27px; left:28px; max-width:180px; font-size:.78rem; line-height:1.8; color:var(--blue-deep); }
+    .contents { padding:0 0 52px; }
+    .contents-list { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; border-top:1px solid #dcd6c7; border-bottom:1px solid #dcd6c7; list-style:none; }
+    .contents-list a { display:flex; gap:13px; align-items:center; padding:18px 9px; text-decoration:none; color:var(--ink-light); font-size:.8rem; }
+    .contents-list a:hover { background:var(--yellow-soft); }
+    .contents-list span { font-family:'Fraunces',serif; color:var(--blue); font-style:italic; font-size:1.05rem; }
+    .section { padding:clamp(64px,8vw,112px) 0; }
+    .section-number { color:var(--blue); opacity:.65; font-size:1.25rem; }
+    .section-header { margin-bottom:32px; }
+    .section-intro { margin-top:15px; max-width:720px; color:var(--ink-light); line-height:1.9; font-size:.94rem; }
+    .editorial-layout { display:grid; grid-template-columns:.48fr 1fr; gap:clamp(32px,5vw,76px); align-items:start; }
+    .editorial-side { position:sticky; top:118px; }
+    .big-label { font-family:'Fraunces',serif; color:var(--blue); opacity:.12; font-size:clamp(4.5rem,8vw,7rem); line-height:1; font-weight:700; display:block; margin-bottom:18px; }
+    .editorial-row { padding:25px 0; border-bottom:1px solid #ded8cb; display:grid; grid-template-columns:45px 1fr; gap:15px; }
+    .editorial-row:first-child { padding-top:0; }
+    .editorial-num { font:italic 1.65rem 'Fraunces',serif; color:var(--blue); }
+    .editorial-row p { margin-top:10px; font-size:.89rem; line-height:1.9; color:var(--ink-light); }
+    .repo-name { display:block; font-weight:600; font-size:.95rem; margin-top:8px; overflow-wrap:anywhere; }
+    .micro { font-size:.76rem; color:var(--ink-light); line-height:1.85; }
+    .callout { background:var(--yellow-soft); padding:22px 26px; border-radius:3px; margin-top:24px; font-size:.88rem; line-height:1.9; }
+    .callout strong { color:var(--ink); }
+    .checkline { display:flex; align-items:flex-start; gap:12px; padding:19px 0; font-size:.86rem; border-bottom:1px solid #e4ddcf; cursor:pointer; }
+    .checkline input { appearance:none; flex-shrink:0; width:21px; height:21px; border:1.5px solid #9b9e9d; border-radius:5px; margin-top:3px; display:grid; place-content:center; background:var(--cream); }
+    .checkline input:checked { background:var(--blue-deep); border-color:var(--blue-deep); }
+    .checkline input:checked:after { content:'✓'; font-size:14px; font-weight:700; color:var(--cream); line-height:1; }
+    .checkline span { flex:1; }
+    .checkline small { display:block; font-size:.75rem; color:var(--ink-light); margin-top:3px; line-height:1.75; }
+    .file-band { display:flex; align-items:center; justify-content:space-between; gap:24px; background:var(--yellow-soft); padding:26px 30px; margin-bottom:30px; }
+    .file-band strong { display:block; color:var(--blue-deep); font-size:1.03rem; overflow-wrap:anywhere; }
+    .file-band .label-caps { margin-bottom:4px; }
+    .file-badge { font-family:'Fraunces',serif; font-style:italic; font-size:3rem; color:var(--blue); }
+    /* Let grid columns shrink to the viewport; long commands scroll inside pre. */
+    .hero > *, .editorial-layout > *, .setup-grid > *, .domain-row > *,
+    .admin-heading > *, .admin-options > *, .accept-grid > *, .accept-col > *,
+    .faq-layout > *, .sources > * { min-width: 0; }
+    .code-macos, pre { min-width: 0; max-width: 100%; }
+    .env-table-wrap { min-width: 0; max-width: 100%; overflow-x:auto; }
+    .env-table { border-collapse:collapse; width:100%; font-size:.8rem; line-height:1.7; text-align:left; }
+    .env-table th { font-size:.68rem; color:var(--ink-light); font-weight:500; letter-spacing:.06em; background:var(--cream-dark); padding:13px 18px; }
+    .env-table td { padding:15px 18px; vertical-align:top; border-bottom:1px solid #e9e3d7; }
+    .env-table td:first-child { width:26%; font-weight:600; color:var(--blue-deep); }
+    .env-table td:nth-child(2) { width:35%; }
+    .env-table code { font-size:.95em; }
+    .secret-label { display:inline-block; padding:2px 9px; background:var(--yellow-soft); color:#75601f; border-radius:4px; font-size:.76rem; }
+    .env-notes { display:grid; grid-template-columns:1fr 1fr; gap:32px; margin-top:32px; }
+    .note-label { color:var(--blue-deep); font-weight:700; font-size:.86rem; margin-bottom:8px; }
+    .env-notes p { font-size:.85rem; color:var(--ink-light); line-height:1.9; }
+    .setup-grid { display:grid; grid-template-columns:1fr 1.25fr; gap:clamp(36px,5vw,72px); }
+    .steps { list-style:none; display:flex; flex-direction:column; gap:32px; counter-reset:steps; }
+    .steps li { position:relative; padding-left:50px; counter-increment:steps; }
+    .steps li:before { content:counter(steps); position:absolute; left:0; top:2px; width:31px; height:31px; display:grid; place-content:center; font:700 1rem 'Fraunces',serif; border-radius:50%; background:var(--blue-deep); color:var(--cream); }
+    .steps h3 { font-size:1.07rem; margin-bottom:7px; }
+    .steps p { color:var(--ink-light); font-size:.86rem; line-height:1.95; }
+    .settings-paper { padding:27px 29px; background:var(--cream); border:1px solid #ded8cb; align-self:start; }
+    .settings-paper .paper-heading { font-family:'Fraunces',serif; color:var(--blue-deep); font-size:1.4rem; margin-bottom:20px; }
+    .settings-paper dl { margin:0; }
+    .settings-paper dl div { display:grid; grid-template-columns:1fr 1fr; gap:18px; padding:13px 0; border-bottom:1px solid #e6dfd2; }
+    .settings-paper dt { font-size:.73rem; color:var(--ink-light); }
+    .settings-paper dd { font-size:.82rem; font-weight:500; }
+    .settings-paper .micro { margin-top:20px; }
+    .section-blue { background:var(--blue-deep); color:var(--cream); }
+    .section-blue .section-number,.section-blue .section-intro { color:var(--cream); }
+    .section-blue .section-number { opacity:.7; }
+    .section-blue a { color:var(--cream); }
+    .domain-row { display:grid; grid-template-columns:1.2fr 1fr; gap:clamp(36px,6vw,90px); align-items:start; }
+    .domain-steps { list-style:none; counter-reset:domain; margin-top:28px; }
+    .domain-steps li { font-size:.87rem; padding:14px 0; border-bottom:1px solid rgba(254,252,246,.2); line-height:1.85; counter-increment:domain; }
+    .domain-steps li:before { content:'0' counter(domain) ' / '; font-family:'Fraunces',serif; color:var(--yellow); margin-right:8px; }
+    .domain-helper { background:var(--cream); color:var(--ink); padding:28px; border-radius:4px; margin-top:12px; }
+    .domain-helper h3 { margin-bottom:10px; }
+    .domain-helper label { display:block; font-size:.76rem; margin:20px 0 7px; font-weight:600; }
+    .domain-helper input { width:100%; border:1px solid #b6b6ae; border-radius:4px; padding:11px 10px; background:#fffdf8; color:var(--ink); font-size:.83rem; }
+    .domain-helper .result { margin-top:18px; padding:14px; background:var(--cream-dark); font-size:.76rem; min-height:70px; overflow-wrap:anywhere; }
+    .domain-helper .result code { font-size:1em; display:block; margin-bottom:8px; }
+    .domain-helper .micro { margin-top:16px; }
+    .domain-helper .mini-button { margin-top:12px; }
+    .domain-helper .result[data-error=true] { color:#a83345; }
+    .dark-section { background:var(--dark-panel); color:var(--cream); }
+    .dark-section .section-number { color:var(--yellow); }
+    .dark-section .section-intro { color:#c7c9d0; }
+    .admin-heading { display:grid; grid-template-columns:.7fr 1fr; gap:clamp(32px,6vw,80px); align-items:start; margin-bottom:30px; }
+    .admin-heading .section-intro { margin-top:36px; }
+    .code-macos { border:1px solid #3d424d; border-radius:8px; overflow:hidden; }
+    .code-titlebar { background:#242b35; padding:13px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:.74rem; color:#d5d7db; }
+    pre { overflow-x:auto; scrollbar-width:thin; scrollbar-color:#687078 transparent; font: .8rem/1.9 ui-monospace,'SFMono-Regular',Consolas,monospace; margin:0; padding:24px; background:#1a202a; color:#efeee6; tab-size:2; }
+    pre code { font:inherit; white-space:pre; overflow-wrap:normal; }
+    .copy-button,.mini-button { border:1px solid #acaea9; border-radius:4px; background:var(--cream); color:var(--ink); font-size:.7rem; padding:6px 11px; font-weight:600; min-height:32px; }
+    .copy-button:hover,.mini-button:hover { background:var(--yellow-soft); }
+    .dark-section .callout { background:#252e39; color:#d8dbe0; }
+    .dark-section .callout strong { color:var(--yellow); }
+    .dark-section p code { color:var(--yellow); background:transparent; }
+    .dark-section .checkline { border-color:#3b4350; }
+    .dark-section .checkline small { color:#bcc2ca; }
+    .admin-options { display:grid; grid-template-columns:1fr 1fr; gap:32px; margin-top:30px; }
+    .admin-options h3 { font-size:1rem; margin-bottom:10px; }
+    .admin-options p { color:#c7c9d0; font-size:.82rem; line-height:1.9; }
+    .admin-options pre { border:1px solid #3d424d; border-radius:4px; margin-top:15px; padding:16px; font-size:.7rem; }
+    .accept-header { display:flex; gap:32px; justify-content:space-between; align-items:end; margin-bottom:32px; }
+    .accept-header .section-intro { max-width:440px; }
+    .accept-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:clamp(25px,4vw,52px); }
+    .accept-col { border-top:1px solid #cac3b6; padding-top:24px; }
+    .accept-col .large-num { display:block; font:italic 3rem 'Fraunces',serif; color:var(--blue); opacity:.6; margin-bottom:16px; }
+    .accept-col:nth-child(2) .large-num { color:#9b7c16; }
+    .accept-col:nth-child(3) .large-num { color:var(--red); }
+    .accept-col h3 { margin-bottom:15px; }
+    .accept-col .checkline { font-size:.84rem; }
+    .footnote { padding-top:26px; font-size:.8rem; color:var(--ink-light); line-height:1.9; }
+    .faq-layout { display:grid; grid-template-columns:.5fr 1fr; gap:clamp(36px,6vw,80px); }
+    .accordion-list { min-width:0; }
+    details { border-bottom:1px solid #ded8cb; }
+    summary { list-style:none; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:21px 0; font-weight:650; font-size:.93rem; }
+    summary::-webkit-details-marker { display:none; }
+    summary:after { content:'+'; color:var(--blue); font:1.5rem 'Fraunces',serif; }
+    details[open] summary:after { content:'−'; }
+    .accordion-body { padding:0 26px 23px 0; color:var(--ink-light); font-size:.85rem; line-height:1.95; }
+    .sources { display:grid; grid-template-columns:.5fr 1fr; gap:clamp(36px,6vw,80px); margin-top:52px; padding-top:38px; border-top:1px solid #ded8cb; }
+    .sources h3 { font-size:1.08rem; }
+    .source-links { list-style:none; display:grid; grid-template-columns:1fr 1fr; gap:14px 24px; font-size:.77rem; }
+    .source-links a { display:block; }
+    footer { padding:38px 0; background:var(--cream); }
+    .footer-row { display:flex; align-items:center; justify-content:space-between; gap:28px; }
+    .footer-brand { font:700 1.75rem 'Fraunces',serif; color:var(--blue-deep); margin-bottom:7px; }
+    .footer-row p { font-size:.76rem; color:var(--ink-light); }
+    .footer-right { text-align:right; }
+    .footer-right p + p { margin-top:6px; }
+    .reset-button { border:0; border-bottom:1px solid #abb4bb; color:var(--blue-deep); padding:0 0 3px; background:transparent; font-size:.75rem; }
+    .toast { position:fixed; left:50%; bottom:24px; transform:translate(-50%,16px); opacity:0; pointer-events:none; background:var(--ink); color:var(--cream); font-size:.8rem; padding:12px 20px; border-radius:5px; z-index:40; max-width:calc(100% - 32px); transition:opacity .2s,transform .2s; }
+    .toast.show { transform:translate(-50%,0); opacity:1; }
+    .reveal { opacity:1; transform:none; }
+    .motion-ready .reveal { opacity:0; transform:translateY(20px); }
+    .motion-ready .reveal.visible { opacity:1; transform:none; }
+    @media(max-width:900px) {
+      .hero { grid-template-columns:1fr .7fr; min-height:auto; padding-top:55px; gap:30px; }
+      .hero h1 { font-size:clamp(2.8rem,6.1vw,4rem); }
+      .launch-sheet { padding:23px 20px 135px; }
+      .launch-sheet .character { right:-12px; }
+      .sheet-note { left:20px; max-width:140px; font-size:.72rem; }
+      .editorial-layout,.setup-grid,.domain-row,.admin-heading,.faq-layout,.sources { grid-template-columns:1fr; gap:32px; }
+      .editorial-side { position:static; display:grid; grid-template-columns:90px 1fr; gap:25px; }
+      .editorial-side .section-intro { grid-column:2; margin-top:-12px; }
+      .big-label { margin:0; font-size:4.7rem; }
+      .editorial-row { grid-template-columns:45px 1fr; }
+      .settings-paper { max-width:none; }
+      .admin-heading .section-intro { margin-top:0; }
+      .accept-header { display:block; }
+      .accept-grid { grid-template-columns:1fr; gap:32px; }
+      .accept-col { display:grid; grid-template-columns:55px 1fr; gap:0 20px; }
+      .accept-col .large-num { grid-row:1/4; }
+      .accept-col .checkline { grid-column:2; }
+      .contents-list { grid-template-columns:repeat(4,1fr); }
+    }
+    @media(max-width:600px) {
+      html { scroll-padding-top:92px; }
+      .topbar-inner { padding-block:13px; gap:10px; }
+      .brand { gap:7px; font-size:1.15rem; }
+      .brand span { font-size:.56rem; letter-spacing:.04em; }
+      .progress-wrap { font-size:.64rem; gap:7px; }
+      .progress-track { width:44px; }
+      .hero { grid-template-columns:1fr; padding-top:40px; gap:43px; }
+      .hero h1 { font-size:clamp(2.8rem,12vw,4rem); }
+      .hero .lead { font-size:.95rem; }
+      .launch-sheet { margin:0 15px 8px 0; padding-bottom:96px; }
+      .launch-sheet .character { width:124px; height:165px; right:-22px; bottom:-22px; }
+      .sheet-note { bottom:19px; max-width:185px; }
+      .sheet-line { padding:12px 0; }
+      .contents-list { grid-template-columns:1fr 1fr; }
+      .contents-list a { padding:13px 6px; font-size:.73rem; }
+      .section { padding-block:58px; }
+      .editorial-side { grid-template-columns:63px 1fr; gap:18px; }
+      .big-label { font-size:3.8rem; }
+      .editorial-row { grid-template-columns:31px 1fr; gap:10px; }
+      .file-band { padding:22px; gap:14px; }
+      .file-band strong { font-size:.85rem; }
+      .file-badge { font-size:2.2rem; }
+      .env-table-wrap { overflow:visible; }
+      .env-table,.env-table tbody,.env-table tr,.env-table td { display:block; width:100%; }
+      .env-table thead { position:absolute; width:1px; height:1px; clip-path:inset(50%); overflow:hidden; }
+      .env-table tr { padding:16px 0; border-bottom:1px solid #e2dbce; }
+      .env-table td { padding:3px 0; border:0; }
+      .env-table td:first-child,.env-table td:nth-child(2) { width:100%; }
+      .env-table td:last-child { color:var(--ink-light); font-size:.76rem; }
+      .env-notes,.admin-options { grid-template-columns:1fr; gap:26px; }
+      .steps li { padding-left:43px; }
+      .settings-paper,.domain-helper { padding:22px; }
+      .settings-paper dl div { grid-template-columns:1fr 1fr; }
+      pre { padding:17px; font-size:.7rem; }
+      .code-titlebar { padding:12px 15px; font-size:.66rem; }
+      .callout { padding:21px; }
+      .accept-col { grid-template-columns:41px 1fr; gap:0 14px; }
+      .accept-col .large-num { font-size:2.4rem; }
+      .source-links { grid-template-columns:1fr; }
+      .footer-row { display:block; }
+      .footer-right { text-align:left; margin-top:24px; }
+    }
+    @media(max-width:360px) { #domain h2 { font-size:1.42rem; } }
+    @media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } .motion-ready .reveal { opacity:1; transform:none; transition:none; } .toast { transition:none; } }
+    @media print { .topbar { position:static; } .contents,.copy-button,.mini-button,.hero-actions,.reset-button,.toast { display:none; } .section { break-inside:avoid; padding-block:32px; } .hero { min-height:0; } .motion-ready .reveal { opacity:1; transform:none; } details .accordion-body { display:block; } .editorial-side { position:static; } }
+  </style>
+</head>
+<body>
+
+<a class="skip" href="#main">跳到教程正文</a>
+<header class="topbar"><div class="topbar-inner"><a class="brand" href="#top">Brclio <span>ACADEMY / GUIDES</span></a><div class="progress-wrap"><span id="progress-label" aria-live="polite">已完成 0 / 12</span><div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progress-fill"></div></div></div></div></header>
+<main id="main">
+<section class="hero" id="top">
+  <div class="hero-text"><span class="label-caps">Deployment field guide · 2026.09</span><p class="en">From local to live.</p><h1>把你的课堂，<br>搬到<span class="highlight">线上。</span></h1><p class="lead">一份为 Brclio Academy 准备的 Vercel 部署手册。从导入环境变量，到邮件、管理员与 VIP 验收，按顺序走完就能确认网站真正可用。</p><div class="tagline"><span class="pill blue">Next.js + Vercel</span><span class="pill">私有 GitHub 数据</span><span class="pill">Gmail SMTP</span></div><div class="hero-actions"><a class="cta" href="#prepare">从准备开始 <span aria-hidden="true">↗</span></a><a class="quiet-link" href="#deploy">直接看导入步骤 →</a></div></div>
+  <div class="hero-visual"><div class="launch-sheet"><div class="sheet-kicker">Your launch destination</div><div class="sheet-title">Academy, online.</div><div class="sheet-line"><span class="mini">正式访问地址 · 待绑定</span><b>academy.brclio.com</b></div><div class="sheet-line"><span class="mini">应用部署</span><b>Brclio / Brclio-Academy</b></div><div class="sheet-line"><span class="mini">业务数据 · 保持私有</span><b>Brclio / academy-private-data</b></div><div class="sheet-note">环境已准备，<br>接下来按步骤上线。</div><img class="character" src="assets/vercel/character.png" alt="Brclio 卡通角色" width="152" height="208"></div></div>
+</section>
+<nav class="contents container" aria-label="教程目录"><ol class="contents-list"><li><a href="#prepare"><span>01</span>准备与仓库</a></li><li><a href="#environment"><span>02</span>看懂环境文件</a></li><li><a href="#deploy"><span>03</span>导入并部署</a></li><li><a href="#domain"><span>04</span>绑定正式域名</a></li><li><a href="#admin"><span>05</span>创建管理员</a></li><li><a href="#acceptance"><span>06</span>上线验收</a></li><li><a href="#troubleshooting"><span>07</span>遇到问题</a></li><li><a href="#references"><span>↗</span>官方资料</a></li></ol></nav>
+<section class="section section--alt" id="prepare"><div class="container editorial-layout">
+  <div class="editorial-side"><span class="big-label" aria-hidden="true">01</span><div><span class="label-caps">Before you deploy</span><h2>先分清楚，<br>两个仓库。</h2></div><p class="section-intro">Vercel 运行网站；GitHub 私有数据仓库存放加密业务数据；Gmail 发出验证码。三者各有职责。</p></div>
+  <div class="editorial-rows">
+    <article class="editorial-row"><span class="editorial-num">A</span><div><h3>代码仓库：交给 Vercel 构建</h3><a class="repo-name" href="https://github.com/Brclio/Brclio-Academy" target="_blank" rel="noreferrer">Brclio / Brclio-Academy ↗</a><p>里面有 <code>package.json</code>、<code>package-lock.json</code>、<code>src/</code> 和 <code>scripts/</code>。在 Vercel 新建项目时，选择的就是这个仓库。确保准备发布的代码已在 GitHub 上。</p></div></article>
+    <article class="editorial-row"><span class="editorial-num">B</span><div><h3>数据仓库：始终保持 Private</h3><a class="repo-name" href="https://github.com/Brclio/academy-private-data" target="_blank" rel="noreferrer">Brclio / academy-private-data ↗</a><p>用户、权限、课程、笔记与进度会加密保存为 <code>academy.enc.json</code>。该仓库已有初始提交与 <code>main</code> 分支；首次真正写入数据时，应用才会创建加密文件。不需要手动创建空文件。</p></div></article>
+    <article class="editorial-row"><span class="editorial-num">C</span><div><h3>核对 PAT 与发信邮箱</h3><p>Fine-grained PAT 的 <strong>Resource owner</strong> 为 <strong>Brclio</strong>，Repository access 仅选 <strong>academy-private-data</strong>，Repository permissions 中 <strong>Contents = Read and write</strong>；Metadata 保持必需读取权限。组织若要求批准，令牌需获批后才能正常访问。</p><p>Gmail 使用 <strong>huangwantangbaby@gmail.com</strong> 和 <strong>应用专用密码</strong>。邮箱开启两步验证后，按 Google 账户可用的选项管理应用密码；填写时去掉显示用空格。网站管理员登录密码需要另设。</p></div></article>
+    <div class="callout"><strong>2026-09-16 预检快照</strong><br>私有仓库和 main 分支可读取；加密数据文件尚未创建；SMTP 连接与认证检查成功。尚未执行远端写入、发送真实邮件或绑定域名，完整验收在后面进行。</div>
+    <label class="checkline"><input type="checkbox" data-check="repositories"><span>两个仓库与凭证权限已确认<small>代码仓库用于 Vercel；数据仓库为 Private，令牌具备写入权限。</small></span></label>
+  </div>
+</div></section>
+<section class="section" id="environment"><div class="container">
+  <div class="section-header reveal"><span class="section-number">02 / Environment</span><h2>这份环境文件，已经为你填好。</h2><p class="section-intro">项目根目录的 <code>.env.vercel.production</code> 是本次生产环境导入文件，包含真实凭证与新生成的 32 字节加密密钥。直接从电脑选择它导入 Vercel，页面仅解释变量，不展示秘密值。</p></div>
+  <div class="file-band"><div><span class="label-caps">Local file · Production only</span><strong>.env.vercel.production</strong><p class="micro">与 package.json 在同一目录。已被 Git 忽略，本地文件权限为 0600。</p></div><span class="file-badge" aria-hidden="true">.env</span></div>
+  <div class="env-table-wrap"><table class="env-table"><thead><tr><th scope="col">变量</th><th scope="col">本次配置</th><th scope="col">作用 / 注意</th></tr></thead><tbody>
+    <tr><td><code>APP_URL</code></td><td><code>https://academy.brclio.com</code></td><td>浏览器实际使用的 HTTPS 站点地址；不带路径。</td></tr>
+    <tr><td><code>DATA_DRIVER</code></td><td><code>github</code></td><td>Vercel 使用私有 GitHub 存储。该项目在 Vercel 上拒绝 SQLite。</td></tr>
+    <tr><td><code>GH_DATA_OWNER</code><br><code>GH_DATA_REPO</code></td><td><code>Brclio</code><br><code>academy-private-data</code></td><td>只指向数据仓库，不填写应用代码仓库。</td></tr>
+    <tr><td><code>GH_DATA_BRANCH</code><br><code>GH_DATA_PATH</code></td><td><code>main</code><br><code>academy.enc.json</code></td><td>分支必须已有提交；首次写入自动创建加密文件。</td></tr>
+    <tr><td><code>GH_DATA_TOKEN</code></td><td><span class="secret-label">已填入本地文件</span></td><td>Fine-grained PAT，Contents 读写权限。</td></tr>
+    <tr><td><code>DATA_ENCRYPTION_KEY</code></td><td><span class="secret-label">已生成并填入本地文件</span></td><td>AES-256-GCM 数据密钥。长期保存，更新部署时继续使用同一值。</td></tr>
+    <tr><td><code>MAIL_TRANSPORT</code><br><code>MAIL_FROM</code></td><td><code>smtp</code><br><code>Brclio Academy &lt;huangwantangbaby@gmail.com&gt;</code></td><td>发件地址与 Gmail 认证账户一致。</td></tr>
+    <tr><td><code>SMTP_HOST</code><br><code>SMTP_PORT</code><br><code>SMTP_SECURE</code></td><td><code>smtp.gmail.com</code><br><code>465</code><br><code>true</code></td><td>465 使用直接 TLS 连接。</td></tr>
+    <tr><td><code>SMTP_USER</code><br><code>SMTP_PASS</code></td><td><code>huangwantangbaby@gmail.com</code><br><span class="secret-label">应用专用密码已填入</span></td><td>SMTP_PASS 已去掉空格。这里不是网站登录密码。</td></tr>
+    <tr><td><code>TRUST_PROXY</code></td><td><code>0</code></td><td>Vercel 环境由应用自动识别，无需手动信任任意代理请求头。</td></tr>
+  </tbody></table></div>
+  <div class="env-notes"><div><div class="note-label">密钥跟数据一起长期保管</div><p>把环境文件和加密密钥保存在可信的密码管理器或加密备份中。已有数据后随意换密钥会导致无法解密。仅重建 Vercel 项目不需要重新生成密钥。</p></div><div><div class="note-label">Production 与 Preview 分开</div><p>本次只导入 <strong>Production</strong>。如以后启用 Preview，使用独立测试仓库或分支、独立密钥与对应 APP_URL。保持所有凭证为服务端变量，不添加 <code>NEXT_PUBLIC_</code> 前缀。</p></div></div>
+  <label class="checkline"><input type="checkbox" data-check="environment"><span>环境文件已找到，密钥已另外保存<small>文件名以点开头；macOS 文件选择器可按 ⌘⇧. 显示隐藏文件。</small></span></label>
+</div></section>
+<section class="section section--alt" id="deploy"><div class="container">
+  <div class="section-header"><span class="section-number">03 / Deploy on Vercel</span><h2>导入代码，然后导入环境变量。</h2><p class="section-intro">登录 Vercel 后，选择准备承载学院的账户或团队。下面的字段以当前控制台为准；无需购买域名或新增数据库服务。</p></div>
+  <div class="setup-grid"><ol class="steps">
+    <li><h3>New Project → Import Git Repository</h3><p>点击 <strong>Add New… → Project</strong>，连接 GitHub，找到 <strong>Brclio/Brclio-Academy</strong> 后点击 <strong>Import</strong>。若列表找不到，调整 Vercel GitHub 集成对应用仓库的访问授权；数据仓库无需导入 Vercel。</p></li>
+    <li><h3>核对右侧构建设置</h3><p>Framework Preset 选 <strong>Next.js</strong>。Root Directory 保持项目根目录，界面通常显示 <code>./</code>。如果导入时未显示 Node.js 版本，创建项目后到 <strong>Settings → Build and Deployment</strong> 核对 <strong>24.x</strong>。</p></li>
+    <li><h3>选择 Import .env，上传本地文件</h3><p>展开 <strong>Environment Variables</strong>，使用 <strong>Import .env</strong>，选择根目录的 <code>.env.vercel.production</code>。如果导入入口在项目设置中，打开 <strong>Settings → Environment Variables</strong> 操作；先失败的初次构建可在配置完成后重新部署。</p><p>逐项核对导入后值、引号解析与环境范围，<strong>只保留 Production</strong>。不要勾选 Preview 和 Development。若文件选择器限定 <code>.env</code>，可以在电脑上复制为临时 <code>.env</code> 文件再导入，完成后妥善移除临时副本。</p></li>
+    <li><h3>Deploy → 等待 Ready</h3><p>点击 <strong>Deploy</strong>，在 Build Logs 查看依赖安装与构建结果，等待状态变为 <strong>Ready</strong>。需要修改变量时，保存后从 <strong>Deployments → 生产部署 → ⋯ → Redeploy</strong> 再部署一次；修改不会自动更新已有部署。</p></li>
+  </ol>
+  <aside class="settings-paper"><div class="paper-heading">Build settings</div><dl><div><dt>Git repository</dt><dd>Brclio-Academy</dd></div><div><dt>Production Branch</dt><dd>main</dd></div><div><dt>Framework Preset</dt><dd>Next.js</dd></div><div><dt>Root Directory</dt><dd><code>./</code>（项目根目录）</dd></div><div><dt>Node.js Version</dt><dd><strong>24.x</strong></dd></div><div><dt>Install Command</dt><dd><code>npm ci</code></dd></div><div><dt>Build Command</dt><dd><code>npm run build</code></dd></div><div><dt>Output Directory</dt><dd>保持 Next.js 默认</dd></div><div><dt>Environment Variables</dt><dd>仅 <strong>Production</strong></dd></div></dl><p class="micro">Output Directory 不填写 <code>out</code>、<code>public</code> 或 <code>.next/standalone</code>。Vercel 的 Next.js 集成负责构建输出；本项目需要服务端运行邮件、会话与权限校验。</p><p class="micro">首次 Ready 只代表构建与部署完成。正式域名尚未绑定时，临时地址上的写入可能被 APP_URL 来源校验拒绝。</p></aside></div>
+  <label class="checkline"><input type="checkbox" data-check="vercel"><span>生产部署已 Ready，环境变量范围正确<small>确认当前部署使用的是最新一组 Production 变量。</small></span></label>
+</div></section>
+<section class="section section-blue" id="domain"><div class="container domain-row">
+  <div><span class="section-number">04 / Your domain</span><h2>把正式入口，<br>指向 academy.brclio.com。</h2><p class="section-intro">APP_URL 已预填正式域名。接下来需要在 Vercel 添加域名，并按它给出的实际 DNS 提示完成解析。</p><ol class="domain-steps"><li>项目 <strong>Settings → Domains</strong>，添加 <strong>academy.brclio.com</strong>，关联 Production 环境。</li><li>到域名实际使用的 DNS 服务商，按 Vercel 展示的记录类型、名称与目标添加记录。子域通常用 CNAME，但以控制台给出的当前值为准。</li><li>回到 Vercel 等待 <strong>Valid Configuration</strong>，确认 HTTPS 证书可用。若要求所有权验证，再按提示添加对应 TXT 记录。</li><li>访问正式域名，确认浏览器地址与 <strong>APP_URL</strong> 完全一致。只要修改过 APP_URL，就保存并 <strong>Redeploy</strong>。</li></ol><p class="section-intro micro">如果先在 *.vercel.app 测试：临时将 APP_URL 改成那个确切的 HTTPS 地址并 Redeploy；正式域名可用后切回 https://academy.brclio.com，再 Redeploy。注册、登录、后台统一从同一地址进入。</p></div>
+  <div><form class="domain-helper" id="domain-form"><h3>地址核对小助手</h3><p class="micro">输入将要访问的站点，生成对应 APP_URL。这里只做本地格式检查，不检查 DNS，也不会修改环境文件。</p><label for="domain-input">完整 HTTPS 地址</label><input id="domain-input" type="text" inputmode="url" autocomplete="off" spellcheck="false" value="https://academy.brclio.com" aria-describedby="domain-result"><button class="mini-button" type="submit">核对地址</button><div class="result" id="domain-result" aria-live="polite"><code id="domain-env">APP_URL=https://academy.brclio.com</code><span id="domain-status">格式正确；域名绑定与 HTTPS 需在 Vercel 验证。</span></div><button type="button" class="mini-button" data-copy="domain-env">复制 APP_URL</button><p class="micro">不要填 /login、/admin、参数或邮箱密码。这里需要的是网站的 origin：协议 + 域名。</p></form><label class="checkline" style="border-color:rgba(254,252,246,.25)"><input type="checkbox" data-check="domain"><span>域名配置有效、HTTPS 可用、APP_URL 一致</span></label></div>
+</div></section>
+<section class="section dark-section" id="admin"><div class="container">
+  <div class="admin-heading"><div><span class="section-number">05 / First administrator</span><h2>回到电脑，<br>创建你的管理员。</h2></div><p class="section-intro">下面的命令由你在本地项目根目录执行，会<strong>真实写入私有数据仓库</strong>。它明确加载本次生产文件，不会误用开发用的 .env.local。先安装 Node.js 24.x 与依赖 <code>npm ci</code>。</p></div>
+  <div class="code-macos"><div class="code-titlebar"><span>本地终端 · 在 Brclio-Academy 根目录运行</span><button class="copy-button" type="button" data-copy="admin-command">复制命令</button></div><pre><code id="admin-command">bash -c '
+set -e
+read -r -s -p "设置网站管理员密码（10–128 位，输入不显示）：" ADMIN_PASSWORD
+printf "\n"
+export ADMIN_PASSWORD
+node --env-file=.env.vercel.production --import tsx scripts/admin.ts --email huangwantangbaby@gmail.com --name Brclio
+'</code></pre></div>
+  <div class="callout"><strong>这是学院网站的独立密码</strong><br>输入时终端不会显示字符，这是正常现象。不要输入 Gmail 应用专用密码或 GitHub 令牌。使用 10–128 位的独立密码并妥善保存；Bash 子进程结束后变量随之清理。</div>
+  <div class="admin-options"><div><h3>第一次创建成功后</h3><p>终端会提示管理员已创建。仓库 <code>main</code> 中出现 <code>academy.enc.json</code>，内容为加密数据。访问 <code>https://academy.brclio.com/login</code>，使用上面的邮箱和刚设的学院密码登录，再打开 <code>/admin</code>。</p><p>管理员权限和 VIP 学习权限互相独立。需要自己试学时，在后台为自己的账号设置未来的 VIP 截止时间。</p></div><div><h3>如果邮箱已经注册并验证</h3><p>创建命令会拒绝覆盖现有账号。确认该账号已完成邮箱验证后，可以提升角色，保留原来的登录密码：</p><pre><code id="promote-command">node --env-file=.env.vercel.production --import tsx scripts/admin.ts   --email huangwantangbaby@gmail.com --promote</code></pre><button class="mini-button" type="button" data-copy="promote-command" style="margin-top:12px">复制提升命令</button></div></div>
+  <label class="checkline"><input type="checkbox" data-check="admin"><span>管理员创建或提升成功，/admin 可以打开<small>已确认加密文件实际写入私有仓库；管理员登录密码已保存。</small></span></label>
+</div></section>
+<section class="section" id="acceptance"><div class="container">
+  <div class="accept-header"><div><span class="section-number">06 / Test the whole journey</span><h2>走完一遍，<br>学员的真实使用路径。</h2></div><p class="section-intro">用一个普通学员邮箱完成验收。勾选只记录你在本浏览器的进度，不代表后台自动检测通过。</p></div>
+  <div class="accept-grid">
+    <article class="accept-col"><span class="large-num">01</span><h3>邮箱与账号</h3><label class="checkline"><input type="checkbox" data-check="mail"><span>真实收到注册验证码<small>打开正式站点的注册页，检查收件箱与垃圾邮件。验证码 10 分钟内有效，使用最近一次收到的验证码。</small></span></label><label class="checkline"><input type="checkbox" data-check="login"><span>完成注册、退出并重新登录<small>测试独立的学员密码；可进一步验证“忘记密码”的邮件与重置流程。</small></span></label></article>
+    <article class="accept-col"><span class="large-num">02</span><h3>后台与 VIP</h3><label class="checkline"><input type="checkbox" data-check="vip"><span>管理员给学员开通 VIP<small>进入 /admin，找到学员账号，把 VIP 截止时间设在未来，保存后刷新确认。</small></span></label><label class="checkline"><input type="checkbox" data-check="content"><span>学员能打开课程并播放视频<small>检查真实视频播放、文章与学习资源。管理员账号如需试学，也要单独开通 VIP。</small></span></label></article>
+    <article class="accept-col"><span class="large-num">03</span><h3>保存与撤权</h3><label class="checkline"><input type="checkbox" data-check="persistence"><span>笔记和学习进度真正保存<small>记录笔记、更新进度，再退出重新登录。确认数据还在，私有仓库出现相应更新。</small></span></label><label class="checkline"><input type="checkbox" data-check="revoke"><span>撤销 VIP 后，受限内容被拦截<small>后台撤销学员 VIP，用新的页面请求确认不能继续取得 VIP 课文、视频信息和学习资源。</small></span></label></article>
+  </div>
+  <div class="callout"><strong>把上线结果记下来</strong><br>保存实际部署版本、正式访问地址、验收日期与未解决问题。GitHub 存储适合小规模、低写入频率场景；每次状态变更都会更新完整加密文件，负载增长时按通用部署文档迁移到持久化服务器。</div>
+  <label class="checkline"><input type="checkbox" data-check="backup"><span>保存部署记录与可恢复的备份<small>加密文件和原始密钥分别保管；每次升级前保留数据备份。</small></span></label>
+  <p class="footnote">页面勾选记录仅存储在当前浏览器。<button class="reset-button" id="reset-progress" type="button">重置全部勾选</button></p>
+</div></section>
+<section class="section section--alt" id="troubleshooting"><div class="container">
+  <div class="faq-layout"><div><span class="section-number">07 / Troubleshooting</span><h2>遇到问题，<br>按现象找原因。</h2><p class="section-intro">先看 Vercel 的构建日志或 Functions / Runtime Logs，定位报错发生在构建、发信、数据访问还是登录请求。分享日志时隐藏真实凭证。</p></div><div class="accordion-list">
+    <details open><summary>页面能打开，但提示“来源校验失败”</summary><div class="accordion-body">核对地址栏的协议与域名是否等于 Production 的 APP_URL。常见情况是环境中写 academy.brclio.com，却从 *.vercel.app 登录。统一地址后保存变量并 Redeploy，再刷新页面重试。</div></details>
+    <details><summary>GitHub 返回 401、403 或 404</summary><div class="accordion-body">401 常见于令牌过期或错误；403 检查 Contents 读写、组织批准、组织令牌政策与 API 限流；404 同时检查 owner、repo、分支和令牌授权。私有仓库缺少授权也可能表现为 404。未初始化前 academy.enc.json 不存在是正常的，但仓库与 main 分支必须存在。</div></details>
+    <details><summary>SMTP 登录成功，为什么还收不到验证码？</summary><div class="accordion-body">连接检查只确认认证，不证明邮件已经投递。正式流程需真实点击发送验证码，再检查收件箱、垃圾邮件和 Vercel 运行日志。配置为 smtp.gmail.com / 465 / true，MAIL_FROM 与 SMTP_USER 一致。确认 SMTP_PASS 是有效应用密码；Google 账户密码变更可能撤销应用密码。重复发送受至少 60 秒间隔限制。</div></details>
+    <details><summary>找不到 .env 文件，或导入后变量未生效</summary><div class="accordion-body">macOS 的文件选择器按 ⌘⇧. 显示隐藏文件。核对文件位于项目根目录、导入后的环境范围为 Production、值里没有意外引号或空格，然后 Redeploy。自定义文件名 .env.vercel.production 不会由 Next.js 自动加载；本地管理员命令必须保留 --env-file 参数。</div></details>
+    <details><summary>构建失败，或提示 SQLite 不适用于 Vercel</summary><div class="accordion-body">检查是否选了应用代码仓库、根目录是否含 package.json、Node 是否为 24.x、Install Command 是否为 npm ci、Build Command 是否为 npm run build。缺少环境变量或仍使用 sqlite 时，将 Production 的 DATA_DRIVER 设为 github 并导入完整配置。输出目录保持 Next.js 默认。</div></details>
+    <details><summary>出现“无法解密”或数据突然无法读取</summary><div class="accordion-body">使用最初创建数据的 DATA_ENCRYPTION_KEY。不要通过删除数据文件或随机换新密钥“修复”。先停止继续写入，核对本地备份与 Vercel 中的密钥是否一致；迁移与换密钥应按项目备份恢复步骤操作并保留回退副本。</div></details>
+    <details><summary>管理员能进后台，却不能学习课程</summary><div class="accordion-body">管理员角色不自动授予 VIP。到后台为自己的账号设置未来的 VIP 截止时间。视频问题还要逐个核对是否允许嵌入、可访问性与网络条件；部署 Ready 不代表所有视频都能播放。</div></details>
+    <details><summary>首次管理员命令报“账号已存在”</summary><div class="accordion-body">脚本不会覆盖原账号和密码。该邮箱已完成验证时，使用本页的 --promote 命令提升权限，再用原网站密码登录。不要把 Gmail 应用密码当作网站密码；需要重置时使用网站的忘记密码流程。</div></details>
+  </div></div>
+  <div class="sources" id="references"><div><h3>资料与依据</h3><p class="micro" style="margin-top:10px">按本项目实际源码与官方文档整理。<br>配置核对：2026-09-16。</p></div><ul class="source-links"><li><a href="https://vercel.com/docs/environment-variables/managing-environment-variables" target="_blank" rel="noreferrer">Vercel · 环境变量管理与 .env 导入 ↗</a></li><li><a href="https://vercel.com/docs/functions/runtimes/node-js/node-js-versions" target="_blank" rel="noreferrer">Vercel · Node.js 版本设置 ↗</a></li><li><a href="https://vercel.com/docs/domains/working-with-domains/add-a-domain" target="_blank" rel="noreferrer">Vercel · 添加项目域名 ↗</a></li><li><a href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens" target="_blank" rel="noreferrer">GitHub · Fine-grained PAT 权限 ↗</a></li><li><a href="https://docs.github.com/en/rest/repos/contents" target="_blank" rel="noreferrer">GitHub · 仓库文件读写接口 ↗</a></li><li><a href="https://support.google.com/accounts/answer/185833" target="_blank" rel="noreferrer">Google · 使用应用专用密码 ↗</a></li><li><a href="https://developers.google.com/workspace/gmail/imap/imap-smtp" target="_blank" rel="noreferrer">Google · Gmail SMTP 连接 ↗</a></li><li><a href="VERCEL-DEPLOYMENT.md">本次部署文字版教程 →</a></li><li><a href="DEPLOYMENT.md">项目通用部署、备份与迁移 →</a></li></ul></div>
+</div></section>
+</main>
+<footer><div class="container footer-row"><div><div class="footer-brand">Brclio</div><p>程序员｜编程教育者<br>写代码、教编程、做产品</p></div><div class="footer-right"><p>Stay curious. Keep building.</p><p><a href="https://brclio.com" target="_blank" rel="noreferrer">Brclio.com ↗</a> · <a href="https://github.com/Brclio/brclio-design-system" target="_blank" rel="noreferrer">Brclio Design System</a> · CC BY-NC-SA 4.0</p></div></div></footer>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+(() => {
+  const storageKey = 'brclio-academy-vercel-guide-2026-09-v1';
+  const checks = [...document.querySelectorAll('[data-check]')];
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(storageKey) || '{}') || {}; } catch {}
+  checks.forEach(el => { el.checked = saved[el.dataset.check] === true; });
+  function updateProgress() {
+    const count = checks.filter(el => el.checked).length;
+    document.getElementById('progress-label').textContent = `已完成 ${count} / ${checks.length}`;
+    document.getElementById('progress-fill').style.transform = `scaleX(${count / checks.length})`;
+  }
+  checks.forEach(el => el.addEventListener('change', () => {
+    saved = Object.fromEntries(checks.map(el => [el.dataset.check,el.checked]));
+    try { localStorage.setItem(storageKey,JSON.stringify(saved)); } catch {}
+    updateProgress();
+  }));
+  updateProgress();
+  let toastTimer;
+  function toast(message) { const el=document.getElementById('toast'); el.textContent=message; el.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),3000); }
+  document.getElementById('reset-progress').addEventListener('click',()=>{ checks.forEach(el=>el.checked=false); saved={}; try{localStorage.removeItem(storageKey);}catch{} updateProgress(); toast('已重置本浏览器中的勾选记录'); });
+  async function copyText(text) {
+    if(navigator.clipboard && window.isSecureContext) { try { await navigator.clipboard.writeText(text); return; } catch {} }
+    const area=document.createElement('textarea'); area.value=text; area.style.cssText='position:fixed;left:-10000px;top:0;'; document.body.appendChild(area); area.select(); const ok=document.execCommand('copy'); area.remove(); if(!ok) throw new Error('copy');
+  }
+  document.querySelectorAll('[data-copy]').forEach(button=>button.addEventListener('click',async()=>{
+    const target=document.getElementById(button.dataset.copy);
+    if(!target.textContent.trim()) { toast('请先输入有效的 HTTPS 地址'); return; }
+    try { await copyText(target.textContent); toast('已复制。命令需要你在本地终端执行。'); } catch { toast('浏览器未允许复制，请选中文字后手动复制'); }
+  }));
+  document.getElementById('domain-form').addEventListener('submit',event=>{
+    event.preventDefault(); const value=document.getElementById('domain-input').value.trim(); const output=document.getElementById('domain-env'); const status=document.getElementById('domain-status'); const result=document.getElementById('domain-result');
+    try {
+      const url=new URL(value);
+      if(url.protocol!=='https:' || url.username || url.password || url.search || url.hash || (url.pathname!=='/' && url.pathname!=='') || !url.hostname.includes('.') || url.port) throw new Error('invalid');
+      output.textContent='APP_URL='+url.origin; result.dataset.error='false'; status.textContent=url.origin==='https://academy.brclio.com' ? '与本次生产配置一致；仍需确认 DNS 与 HTTPS。' : '测试地址：修改 Vercel 的 APP_URL 后 Redeploy；正式上线再切回 academy.brclio.com。';
+    } catch { output.textContent=''; result.dataset.error='true'; status.textContent='请填写 HTTPS 站点域名，不含路径、端口、账号、参数或片段。'; }
+  });
+  if('IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.documentElement.classList.add('motion-ready');
+    const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('visible');observer.unobserve(entry.target);}}),{threshold:.12});
+    document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+  }
+})();
+</script>
+<!-- Adapted from Brclio Design System assets/template-tutorial.html · CC BY-NC-SA 4.0 -->
+
+</body>
+</html>

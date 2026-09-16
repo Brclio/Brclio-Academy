@@ -43,6 +43,7 @@ unset ADMIN_PASSWORD
 
 ## 部署与维护
 
+- [Vercel 详细部署教程](docs/VERCEL-DEPLOYMENT.md) · [浏览器阅读版](docs/vercel-deployment.html)：导入环境变量、绑定 academy.brclio.com、Gmail SMTP、管理员初始化与上线验收。
 - [完整部署教程](docs/DEPLOYMENT.md)：Vercel + 私有 GitHub 加密数据、服务器 SQLite、Docker、Nginx、备份恢复。
 - [后台操作与内容格式](docs/ADMIN.md)：VIP 有效期、课程章节、课时多视频、文章、专栏与示例 JSON。
 - [架构与运行边界](docs/ARCHITECTURE.md)：认证、权限、数据适配器、GitHub 写入限制与迁移条件。
