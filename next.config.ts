@@ -1,6 +1,8 @@
 import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  // Next 16.3's Vercel adapter omits the server trace required by standalone.
+  // Keep standalone for the local start script and Docker deployments.
+  output: process.env.VERCEL ? undefined : 'standalone',
   poweredByHeader: false,
   devIndicators: false,
   async headers() {

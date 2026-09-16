@@ -60,9 +60,9 @@ Mac 的文件选择窗口若看不到点号开头的文件，按 **Command + Shi
 | Output Directory | 保持 Next.js 默认，不手填 `out`、`public` 或 `.next/standalone` |
 | Node.js Version | `24.x`；若导入页没有此项，在项目 Settings → Build and Deployment 中检查 |
 
-本项目需要服务端处理登录、邮件和 VIP 权限，不能选择静态导出。现有 `output: 'standalone'` 可以保留，Vercel 按 Next.js 框架处理，不需要额外运行 `npm start`，也不需要新建含密钥的 `vercel.json`。
+本项目需要服务端处理登录、邮件和 VIP 权限，不能选择静态导出。`next.config.ts` 会根据 Vercel 自动提供的 `VERCEL` 变量选择构建输出：Vercel 使用 Next.js 默认输出，本地与 Docker 使用 `standalone`。Next.js 16.3 的适配器与强制 `standalone` 存在兼容问题，不能在 Vercel 上同时启用。Vercel 不需要额外运行 `npm start`，也不需要新建含密钥的 `vercel.json`。[Next.js 问题记录](https://github.com/vercel/next.js/issues/96646)。
 
-`package.json` 当前要求 Node `>=22.13.0`。Vercel 官方当前将这种开放版本范围映射到最新支持的 24.x；部署时仍应在日志确认实际使用版本。若将来需要锁定主版本，可以将 `engines.node` 明确设为 `24.x` 并同步锁文件。[Vercel Node.js 版本说明](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions)。
+`package.json` 与锁文件已将 `engines.node` 固定为 `24.x`，避免平台新增 Node 主版本后自动升级。部署时仍应在日志确认实际使用版本。[Vercel Node.js 版本说明](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions)。
 
 ## 4. 导入 env：一次加入 16 个变量
 
@@ -171,6 +171,7 @@ YouTube 视频自身的可见性与嵌入权限仍由 YouTube 决定，网站 VI
 
 | 现象 | 检查与处理 |
 | --- | --- |
+| 构建末尾报 `ENOENT .next/next-server.js.nft.json` | 更新代码，确认 `next.config.ts` 使用 `output: process.env.VERCEL ? undefined : 'standalone'`，再部署包含此修复的新提交；只重试旧提交不会应用本地修复。无需修改 env 或手工补空文件 |
 | GitHub 401 / Bad credentials | Token 失效、被撤销或复制不完整；替换 `GH_DATA_TOKEN`，再 Redeploy |
 | GitHub 403 / 无法写入 | 检查 Contents 读写权限、组织批准、分支规则和 API 限流；只读检查成功不代表可写 |
 | GitHub 404 / 数据仓库读取失败 | 核对 owner、repo、令牌能访问的仓库、真实分支；分支不存在也可能表现为 404 |
